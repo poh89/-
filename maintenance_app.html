@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Maintenance & OEE Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Professional Blue Style */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 6px solid #0056b3; }
+        
+        /* Header & Infinity Logo */
+        .header-section { display: flex; align-items: center; gap: 20px; margin-bottom: 25px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .logo-container { width: 100px; height: 60px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px; border: 1px solid #eee; }
+        .header-text h1 { margin: 0; color: #0056b3; font-size: 24px; }
+
+        h2 { color: #0056b3; font-size: 19px; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: #444; }
+        
+        select, input[type="text"], input[type="number"], input[type="file"] { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 15px; box-sizing: border-box; }
+        input[readonly] { background-color: #e9ecef; font-weight: bold; color: #555; }
+
+        /* Maintenance Type Buttons */
+        .radio-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .radio-group label { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .radio-group input[type="radio"] { display: none; }
+        .radio-group input[type="radio"]:checked + label { background: #0056b3; color: white; border-color: #0056b3; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* Star Rating */
+        .rating-box { background: #fffdf0; border: 1px solid #ffeeba; padding: 20px; border-radius: 10px; margin: 25px 0; text-align: center; }
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: center; gap: 10px; }
+        .star-rating input { display: none; }
+        .star-rating label { font-size: 40px; color: #ddd; cursor: pointer; transition: 0.2s; }
+        .star-rating input:checked ~ label { color: #ffc107; }
+        .star-rating label:hover, .star-rating label:hover ~ label { color: #ffdb70; }
+
+        /* Photo Preview */
+        #photoPreview { max-width: 100%; height: 150px; object-fit: contain; border-radius: 8px; display: none; border: 1px solid #ddd; margin-top: 10px; padding: 5px; background: #fff; }
+
+        button { background-color: #28a745; color: white; border: none; padding: 18px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; transition: 0.3s; margin-top: 10px; }
+        button:hover { background-color: #218838; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+        /* Dashboard */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .chart-container { background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #eee; min-height: 300px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; background: white; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { background-color: #0056b3; color: white; }
+        .table-img { width: 60px; height: 45px; object-fit: cover; border-radius: 4px; background: #eee; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-section">
+        <div class="logo-container">
+            <svg width="60" height="30" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30 10C15 10 5 18 5 25s10 15 25 15c10 0 17-6 20-10 3 4 10 10 20 10 15 0 25-8 25-15s-10-15-25-15c-10 0-17 6-20 10-3-4-10-10-20-10z" 
+                      fill="none" stroke="#0056b3" stroke-width="8" stroke-linecap="round"/>
+                <circle cx="50" cy="25" r="4" fill="#0056b3" />
+            </svg>
+        </div>
+        <div class="header-text">
+            <h1>ระบบจัดการงานซ่อมบำรุง & OEE</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Infinity Service Management System</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🔧 บันทึกข้อมูลงานซ่อม</h2>
+        <form id="mainForm">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>👤 ช่างผู้รับผิดชอบ</label>
+                    <select id="techName" required>
+                        <option value="">-- เลือกช่าง --</option>
+                        <option value="ช่าง A">ช่าง A</option>
+                        <option value="ช่าง B">ช่าง B</option>
+                        <option value="ช่าง C">ช่าง C</option>
+                    </select>
+                    <input type="text" id="techId" readonly placeholder="รหัสช่างอัตโนมัติ" style="margin-top:8px;">
+                </div>
+                <div class="form-group">
+                    <label>⚙️ เครื่องจักร</label>
+                    <select id="machineName" required>
+                        <option value="">-- เลือกเครื่องจักร --</option>
+                        <option value="เครื่องจักร A">เครื่องจักร A</option>
+                        <option value="เครื่องจักร B">เครื่องจักร B</option>
+                        <option value="เครื่องจักร C">เครื่องจักร C</option>
+                        <option value="เครื่องจักร D">เครื่องจักร D</option>
+                        <option value="เครื่องจักร E">เครื่องจักร E</option>
+                    </select>
+                    <input type="text" id="machineId" readonly placeholder="รหัสเครื่องจักร" style="margin-top:8px;">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>📋 ประเภทงานซ่อม</label>
+                <div class="radio-group">
+                    <input type="radio" id="t1" name="mType" value="ซ่อมฉุกเฉิน" required><label for="t1">ซ่อมฉุกเฉิน</label>
+                    <input type="radio" id="t2" name="mType" value="ซ่อมบำรุงตามแผน"><label for="t2">ซ่อมบำรุงตามแผน</label>
+                    <input type="radio" id="t3" name="mType" value="ซ่อมก่อนจะเสีย"><label for="t3">ซ่อมก่อนจะเสีย</label>
+                    <input type="radio" id="t4" name="mType" value="งานปรับปรุง"><label for="t4">งานปรับปรุง/ติดตั้ง</label>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>🔍 สาเหตุการเสีย</label>
+                    <select id="rootCause" required>
+                        <option value="">-- เลือกสาเหตุ --</option>
+                        <option value="มอเตอร์ไหม้">มอเตอร์ไหม้/ขัดข้อง</option>
+                        <option value="สายพานขาด">สายพานขาด/หลวม</option>
+                        <option value="เซนเซอร์เสีย">เซนเซอร์ทำงานผิดปกติ</option>
+                        <option value="ระบบหล่อลื่น">ระบบหล่อลื่นมีปัญหา</option>
+                        <option value="น็อตหลวม">น็อตหลวม/โครงสร้างชำรุด</option>
+                        <option value="Human Error">Human Error</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>✅ วิธีแก้ไข</label>
+                    <select id="actionTaken" required>
+                        <option value="">-- เลือกวิธีแก้ไข --</option>
+                        <option value="เปลี่ยนอะไหล่">เปลี่ยนอะไหล่ใหม่</option>
+                        <option value="ปรับตั้งค่า">ปรับตั้งค่า/จูนเครื่อง</option>
+                        <option value="ซ่อมแซม">ซ่อมแซมจุดที่ชำรุด</option>
+                        <option value="ทำความสะอาด">ทำความสะอาด/หล่อลื่น</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>📷 รูปภาพเครื่องจักรที่เสีย</label>
+                <input type="file" id="machinePhoto" accept="image/*" onchange="previewImg(this)">
+                <img id="photoPreview" src="#" alt="Preview">
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>⏱️ เวลาตามแผน (นาที)</label>
+                    <input type="number" id="pTime" value="480" required>
+                </div>
+                <div class="form-group">
+                    <label>🚫 Downtime (นาที)</label>
+                    <input type="number" id="dTime" placeholder="นาทีที่หยุดซ่อม" required>
+                </div>
+            </div>
+
+            <div class="rating-box">
+                <label>⭐ ประเมินความพึงพอใจโดยผู้ใช้</label>
+                <div class="star-rating">
+                    <input type="radio" id="s5" name="rating" value="5" required/><label for="s5">★</label>
+                    <input type="radio" id="s4" name="rating" value="4"/><label for="s4">★</label>
+                    <input type="radio" id="s3" name="rating" value="3"/><label for="s3">★</label>
+                    <input type="radio" id="s2" name="rating" value="2"/><label for="s2">★</label>
+                    <input type="radio" id="s1" name="rating" value="1"/><label for="s1">★</label>
+                </div>
+            </div>
+
+            <button type="submit">💾 บันทึกข้อมูลและอัปเดตกราฟ</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>📊 Dashboard & ประวัติงาน</h2>
+        <div class="dashboard-grid">
+            <div class="chart-container"><canvas id="barChart"></canvas></div>
+            <div class="chart-container"><canvas id="donutChart"></canvas></div>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>รูป</th>
+                        <th>เครื่องจักร</th>
+                        <th>ช่าง</th>
+                        <th>สาเหตุ</th>
+                        <th>OEE (%)</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const techs = { "ช่าง A": "T001", "ช่าง B": "T002", "ช่าง C": "T003" };
+    const machines = { "เครื่องจักร A": "MC-01", "เครื่องจักร B": "MC-02", "เครื่องจักร C": "MC-03", "เครื่องจักร D": "MC-04", "เครื่องจักร E": "MC-05" };
+
+    document.getElementById('techName').onchange = function() { document.getElementById('techId').value = techs[this.value] || ""; };
+    document.getElementById('machineName').onchange = function() { document.getElementById('machineId').value = machines[this.value] || ""; };
+
+    let currentPhoto = null;
+    function previewImg(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.getElementById('photoPreview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+                currentPhoto = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    let records = [];
+    let bChart, dChart;
+
+    document.getElementById('mainForm').onsubmit = function(e) {
+        e.preventDefault();
+        
+        const planned = parseFloat(document.getElementById('pTime').value);
+        const down = parseFloat(document.getElementById('dTime').value);
+        const oeeValue = (((planned - down) / planned) * 95).toFixed(1); 
+        
+        const entry = {
+            photo: currentPhoto,
+            m: document.getElementById('machineName').value,
+            mId: document.getElementById('machineId').value,
+            t: document.getElementById('techName').value,
+            c: document.getElementById('rootCause').value,
+            oee: oeeValue,
+            star: document.querySelector('input[name="rating"]:checked').value
+        };
+
+        records.push(entry);
+        updateUI();
+        
+        this.reset();
+        document.getElementById('techId').value = "";
+        document.getElementById('machineId').value = "";
+        document.getElementById('photoPreview').style.display = 'none';
+        currentPhoto = null;
+    };
+
+    function updateUI() {
+        // Table
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = records.slice().reverse().map(r => `
+            <tr>
+                <td><img src="${r.photo || ''}" class="table-img"></td>
+                <td>${r.m} (${r.mId})</td>
+                <td>${r.t}</td>
+                <td>${r.c}</td>
+                <td><strong>${r.oee}%</strong></td>
+                <td style="color:#ffc107; font-weight:bold;">★ ${r.star}</td>
+            </tr>
+        `).join('');
+
+        // Charts
+        const causes = {};
+        const oeeMap = {};
+        records.forEach(r => {
+            causes[r.c] = (causes[r.c] || 0) + 1;
+            oeeMap[r.mId] = (oeeMap[r.mId] || 0) + parseFloat(r.oee);
+        });
+
+        if(bChart) bChart.destroy();
+        bChart = new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(oeeMap),
+                datasets: [{ label: 'OEE (%)', data: Object.values(oeeMap).map(v => (v/records.length).toFixed(1)), backgroundColor: '#0056b3' }]
+            },
+            options: { plugins: { title: { display: true, text: 'ประสิทธิภาพเครื่องจักร' } } }
+        });
+
+        if(dChart) dChart.destroy();
+        dChart = new Chart(document.getElementById('donutChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(causes),
+                datasets: [{ data: Object.values(causes), backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0'] }]
+            },
+            options: { plugins: { title: { display: true, text: 'สาเหตุการเสีย' } } }
+        });
+    }
+</script>
+
+</body>
+</html>
